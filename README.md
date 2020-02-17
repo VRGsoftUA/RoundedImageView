@@ -3,7 +3,7 @@
 [![](https://jitpack.io/v/VRGsoftUA/RoundedImageView.svg)](https://jitpack.io/#VRGsoftUA/RoundedImageView)
 
 Library contains the rounded image view</br></br>
-<img src="https://github.com/VRGsoftUA/ArcProgressBar/blob/master/demo.png" width="270" height="480" />
+<img src="https://github.com/VRGsoftUA/RoundedImageView/blob/master/demo.png" width="270" height="480" />
 
 # Usage
 *For a working implementation, Have a look at the Sample Project - app*
