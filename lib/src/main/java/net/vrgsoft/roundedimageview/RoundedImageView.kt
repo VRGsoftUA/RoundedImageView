@@ -76,7 +76,25 @@ class RoundedImageView @JvmOverloads constructor(
         canvas.drawColor(Color.TRANSPARENT)
         path?.let {
             if (drawable != null) {
-                canvas.drawPath(it, antiAliasPaint)
+                if (imageMatrix == null && paddingTop == 0 && paddingLeft == 0) {
+                    canvas.drawPath(it, antiAliasPaint)
+                } else {
+                    val saveCount = canvas.saveCount
+                    canvas.save()
+                    if (cropToPadding) {
+                        canvas.clipRect(
+                            scrollX + paddingLeft, scrollY + paddingTop,
+                            scrollX + right - left - paddingRight,
+                            scrollY + bottom - top - paddingBottom
+                        )
+                    }
+                    canvas.translate(paddingLeft.toFloat(), paddingTop.toFloat())
+                    if (imageMatrix != null) {
+                        canvas.concat(imageMatrix)
+                    }
+                    canvas.drawPath(it, antiAliasPaint)
+                    canvas.restoreToCount(saveCount)
+                }
             }
         }
     }
