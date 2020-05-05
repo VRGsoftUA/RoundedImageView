@@ -1,11 +1,10 @@
 package net.vrgsoft.roundedimageview
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Path
-import android.graphics.RectF
+import android.graphics.*
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatImageView
+import net.vrgsoft.toBitmap
 
 class RoundedImageView @JvmOverloads constructor(
     context: Context,
@@ -21,6 +20,12 @@ class RoundedImageView @JvmOverloads constructor(
     private val corners: Float
 
     private var path: Path? = null
+    private var maskBitmap: Bitmap? = null
+
+    private val antiAliasPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isAntiAlias = true
+        isFilterBitmap = true
+    }
 
     init {
         val a = context.obtainStyledAttributes(
@@ -39,16 +44,41 @@ class RoundedImageView @JvmOverloads constructor(
         path = Path()
     }
 
+    private fun invalidatePath(w: Int, h: Int) {
+        path = getPath(w, h).also {
+            if (drawable != null && isAttachedToWindow) {
+                antiAliasPaint.shader = null
+                maskBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).apply {
+                    val c = Canvas(this)
+                    c.drawPath(it, antiAliasPaint)
+                    antiAliasPaint.shader =
+                        BitmapShader(
+                            drawable.toBitmap(w, h),
+                            Shader.TileMode.CLAMP,
+                            Shader.TileMode.CLAMP
+                        )
+                }
+            } else {
+                maskBitmap?.recycle()
+                maskBitmap = null
+                path = null
+            }
+        }
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        path = getPath(w, h)
+        super.onSizeChanged(w, h, oldw, oldh)
+        invalidatePath(w, h)
         invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
+        canvas.drawColor(Color.TRANSPARENT)
         path?.let {
-            canvas.clipPath(it)
+            if (drawable != null) {
+                canvas.drawPath(it, antiAliasPaint)
+            }
         }
-        super.onDraw(canvas)
     }
 
     private fun getPath(w: Int, h: Int): Path {
