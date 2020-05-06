@@ -2,9 +2,10 @@ package net.vrgsoft.roundedimageview
 
 import android.content.Context
 import android.graphics.*
+import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatImageView
-import net.vrgsoft.toBitmap
 
 class RoundedImageView @JvmOverloads constructor(
     context: Context,
@@ -21,6 +22,7 @@ class RoundedImageView @JvmOverloads constructor(
 
     private var path: Path? = null
     private var maskBitmap: Bitmap? = null
+    private val shaderCanvas = Canvas()
 
     private val antiAliasPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         isAntiAlias = true
@@ -44,24 +46,36 @@ class RoundedImageView @JvmOverloads constructor(
         path = Path()
     }
 
+    override fun setImageDrawable(drawable: Drawable?) {
+        super.setImageDrawable(drawable)
+        invalidatePath(measuredWidth, measuredHeight)
+    }
+
+    override fun setImageBitmap(bm: Bitmap?) {
+        super.setImageBitmap(bm)
+        invalidatePath(measuredWidth, measuredHeight)
+    }
+
+    override fun setImageResource(resId: Int) {
+        super.setImageResource(resId)
+        invalidatePath(measuredWidth, measuredHeight)
+    }
+
+    override fun setImageURI(uri: Uri?) {
+        super.setImageURI(uri)
+        invalidatePath(measuredWidth, measuredHeight)
+    }
+
     private fun invalidatePath(w: Int, h: Int) {
         path = getPath(w, h).also {
             if (drawable != null && isAttachedToWindow) {
-                antiAliasPaint.shader = null
-                maskBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).apply {
-                    val c = Canvas(this)
-                    c.drawPath(it, antiAliasPaint)
-                    antiAliasPaint.shader =
-                        BitmapShader(
-                            drawable.toBitmap(w, h),
-                            Shader.TileMode.CLAMP,
-                            Shader.TileMode.CLAMP
-                        )
-                }
-            } else {
-                maskBitmap?.recycle()
-                maskBitmap = null
-                path = null
+                maskBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                shaderCanvas.setBitmap(maskBitmap)
+                antiAliasPaint.shader = BitmapShader(
+                    maskBitmap!!,
+                    Shader.TileMode.CLAMP,
+                    Shader.TileMode.CLAMP
+                )
             }
         }
     }
@@ -76,25 +90,8 @@ class RoundedImageView @JvmOverloads constructor(
         canvas.drawColor(Color.TRANSPARENT)
         path?.let {
             if (drawable != null) {
-                if (imageMatrix == null && paddingTop == 0 && paddingLeft == 0) {
-                    canvas.drawPath(it, antiAliasPaint)
-                } else {
-                    val saveCount = canvas.saveCount
-                    canvas.save()
-                    if (cropToPadding) {
-                        canvas.clipRect(
-                            scrollX + paddingLeft, scrollY + paddingTop,
-                            scrollX + right - left - paddingRight,
-                            scrollY + bottom - top - paddingBottom
-                        )
-                    }
-                    canvas.translate(paddingLeft.toFloat(), paddingTop.toFloat())
-                    if (imageMatrix != null) {
-                        canvas.concat(imageMatrix)
-                    }
-                    canvas.drawPath(it, antiAliasPaint)
-                    canvas.restoreToCount(saveCount)
-                }
+                super.onDraw(shaderCanvas)
+                canvas.drawPath(it, antiAliasPaint)
             }
         }
     }
