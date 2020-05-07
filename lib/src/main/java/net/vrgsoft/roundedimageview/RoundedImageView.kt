@@ -68,7 +68,7 @@ class RoundedImageView @JvmOverloads constructor(
 
     private fun invalidatePath(w: Int, h: Int) {
         path = getPath(w, h).also {
-            if (drawable != null && isAttachedToWindow) {
+            if (drawable != null && w > 0 && h > 0 && isLaidOut) {
                 maskBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                 shaderCanvas.setBitmap(maskBitmap)
                 antiAliasPaint.shader = BitmapShader(
